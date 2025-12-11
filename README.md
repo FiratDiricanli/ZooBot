@@ -1,4 +1,4 @@
-# 🦁 ZooBot/EN
+# 🦅 ZooBot/EN
 
 **ZooBot** is an AI-powered chatbot designed to answer questions about animals, compare their characteristics, and manage conversation history. It uses **Machine Learning (Scikit-learn)** for intent recognition and **Flask** for the web interface.
 
@@ -39,7 +39,7 @@
 
 
 
-# 🦁 ZooBot/TR
+# 🦅 ZooBot/TR
 
 **ZooBot**, hayvanlar hakkındaki soruları yanıtlamak, onların özelliklerini karşılaştırmak ve konuşma geçmişini yönetmek için tasarlanmış, yapay zeka destekli bir sohbet botudur. Niyet tanıma (intent recognition) için **Makine Öğrenimi (Scikit-learn)** ve web arayüzü için **Flask** kullanır.
 
