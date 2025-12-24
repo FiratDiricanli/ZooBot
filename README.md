@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🦅 ZooBot
+# 🦅 ZooBot 🦅
 
 **Yapay Zeka Destekli Hayvan Uzmanı / AI-Powered Animal Expert**
 
