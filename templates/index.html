@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZooBot - Gelişmiş Panel</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background-color: #f0f2f5;
+        }
+        
+        /* SOL MENÜ (SIDEBAR) TASARIMI */
+        .sidebar {
+            width: 260px;
+            background-color: #202123;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        .new-chat-btn {
+            background-color: #343541;
+            border: 1px solid #565869;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+        }
+        .new-chat-btn:hover {
+            background-color: #40414f;
+        }
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .history-item {
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #ececf1;
+        }
+        .history-item:hover {
+            background-color: #2A2B32;
+        }
+        .delete-btn {
+            color: #ff4d4d;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            display: none; /* Üzerine gelince görünür */
+        }
+        .history-item:hover .delete-btn {
+            display: block;
+        }
+
+        /* SAĞ TARA (SOHBET ALANI) */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #343541;
+            position: relative;
+        }
+        .chat-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 15px;
+            border-radius: 10px;
+            line-height: 1.5;
+            color: #d1d5db;
+            font-size: 16px;
+        }
+        .user-message {
+            align-self: flex-end;
+            background-color: #10a37f; /* Yeşilimsi ton */
+            color: white;
+        }
+        .bot-message {
+            align-self: flex-start;
+            background-color: #444654;
+            color: white;
+        }
+        
+        /* GİRİŞ ALANI */
+        .input-area {
+            padding: 20px;
+            background-color: #343541;
+            border-top: 1px solid #565869;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .input-wrapper {
+            width: 80%;
+            position: relative;
+            display: flex;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            padding-right: 50px;
+            border-radius: 10px;
+            border: none;
+            background-color: #40414f;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .send-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #10a37f;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .save-btn {
+            background-color: #eab308;
+            color: black;
+            border: none;
+            padding: 0 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <button class="new-chat-btn" onclick="startNewChat()">
+        <i class="fas fa-plus"></i> Yeni Sohbet
+    </button>
+    <div style="margin-top: 15px; font-size: 12px; color: #8e8ea0;">GEÇMİŞ SOHBETLER</div>
+    <div class="history-list" id="historyList">
+        </div>
+</div>
+
+<div class="chat-container">
+    <div class="chat-box" id="chatBox">
+        <div class="message bot-message">Merhaba! Ben ZooBot. Geçmiş sohbetlerinizi solda görebilirsiniz veya yeni bir soru sorabilirsiniz. 🦁</div>
+    </div>
+    
+    <div class="input-area">
+        <button class="save-btn" onclick="saveCurrentChat()" title="Sohbeti Kaydet">
+            <i class="fas fa-save"></i>
+        </button>
+        <div class="input-wrapper">
+            <input type="text" id="userInput" placeholder="Bir mesaj yazın..." onkeypress="handleKeyPress(event)">
+            <button class="send-btn" onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentChatHistory = []; // Sohbeti hafızada tutmak için
+
+    // Sayfa açılınca geçmişi yükle
+    window.onload = loadChatHistory;
+
+    async function sendMessage() {
+        const inputField = document.getElementById("userInput");
+        const message = inputField.value.trim();
+
+        if (message === "") return;
+
+        // Kullanıcı mesajını ekle
+        addMessage(message, "user-message");
+        currentChatHistory.push({sender: "user", text: message});
+        inputField.value = "";
+
+        try {
+            const response = await fetch('/ask', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ message: message })
+            });
+            const data = await response.json();
+            
+            // Bot cevabını ekle
+            addMessage(data.response, "bot-message");
+            currentChatHistory.push({sender: "bot", text: data.response});
+
+        } catch (error) {
+            console.error("Hata:", error);
+            addMessage("Bağlantı hatası!", "bot-message");
+        }
+    }
+
+    function addMessage(text, className) {
+        const chatBox = document.getElementById("chatBox");
+        const div = document.createElement("div");
+        div.className = `message ${className}`;
+        div.innerHTML = text.replace(/\n/g, "<br>");
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === "Enter") sendMessage();
+    }
+
+    // --- GEÇMİŞ YÖNETİMİ ---
+
+    async function loadChatHistory() {
+        try {
+            const res = await fetch('/api/chats');
+            const chats = await res.json();
+            
+            const historyList = document.getElementById("historyList");
+            historyList.innerHTML = "";
+
+            chats.forEach(chat => {
+                const div = document.createElement("div");
+                div.className = "history-item";
+                div.innerHTML = `
+                    <span onclick="loadSingleChat(${chat.id})">
+                        <i class="fas fa-comment"></i> ${chat.baslik}
+                    </span>
+                    <button class="delete-btn" onclick="deleteChat(${chat.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                historyList.appendChild(div);
+            });
+        } catch (err) {
+            console.error("Geçmiş yüklenemedi", err);
+        }
+    }
+
+    async function loadSingleChat(id) {
+        try {
+            const res = await fetch(`/api/chat/${id}`);
+            const messages = await res.json();
+            
+            // Ekranı temizle ve eski mesajları yükle
+            const chatBox = document.getElementById("chatBox");
+            chatBox.innerHTML = "";
+            currentChatHistory = messages; // Hafızayı güncelle
+
+            messages.forEach(msg => {
+                const type = msg.sender === "user" ? "user-message" : "bot-message";
+                addMessage(msg.text, type);
+            });
+
+        } catch (err) {
+            alert("Sohbet yüklenirken hata oluştu.");
+        }
+    }
+
+    async function saveCurrentChat() {
+        if (currentChatHistory.length === 0) {
+            alert("Kaydedilecek bir konuşma yok!");
+            return;
+        }
+
+        const baslik = prompt("Bu sohbete bir isim verin:", "Sohbet " + new Date().toLocaleTimeString());
+        if (!baslik) return;
+
+        try {
+            const res = await fetch('/api/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    baslik: baslik,
+                    gecmis: currentChatHistory
+                })
+            });
+            
+            if (res.ok) {
+                alert("Sohbet kaydedildi!");
+                loadChatHistory(); // Listeyi yenile
+            }
+        } catch (err) {
+            alert("Kaydetme hatası!");
+        }
+    }
+
+    async function deleteChat(id) {
+        if(!confirm("Bu sohbeti silmek istediğine emin misin?")) return;
+        
+        try {
+            await fetch(`/api/chat/${id}`, { method: 'DELETE' });
+            loadChatHistory(); // Listeyi yenile
+        } catch (err) {
+            alert("Silme hatası!");
+        }
+    }
+
+    function startNewChat() {
+        document.getElementById("chatBox").innerHTML = '<div class="message bot-message">Merhaba! Ben ZooBot. Yeni bir konuya başlayabiliriz. 🦁</div>';
+        currentChatHistory = [];
+    }
+</script>
+
+</body>
+</html>
